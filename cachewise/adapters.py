@@ -14,6 +14,7 @@ from .cache_aware import build_stable_prefix, CACHE_MIN_TOKENS
 from .prethinker import apply_prethinker
 from .compress import compress_history
 
+# Politica base estable (se expande en build_stable_prefix al umbral).
 BASE_POLICY = (
     "Eres el asistente de Rafael para Softgrama y Talentgrama. "
     "Responde en español latino neutro. Nunca uses voseo ni modismos "
@@ -31,48 +32,75 @@ def _make_stable_system() -> str:
 
 
 class OptimizedClient:
+    """Cliente unificado que aplica las palancas de optimización."""
+
     def __init__(self, env: str):
         self.env = env
         self._system_prefix = _make_stable_system()
         if env == "nous-dsflash":
-            self.model = "deepseek-v4-flash"; self._use_harness = False
+            self.model = "deepseek-v4-flash"
+            self._use_harness = False
         elif env == "deepseek-direct":
-            self.model = "deepseek-v4-flash"; self._use_harness = True
+            self.model = "deepseek-v4-flash"
+            self._use_harness = True
         else:
             raise ValueError(f"Entorno desconocido: {env}")
 
-    def _prepare(self, messages, fidelity, enable_prethinker):
+    def _prepare(self, messages: list[dict], fidelity: float,
+                 enable_prethinker: bool) -> list[dict]:
         out = list(messages)
+        # 1) Inyectar prefijo estable como system (cache hit).
         has_system = any(m.get("role") == "system" for m in out)
         if has_system:
             for m in out:
                 if m.get("role") == "system":
-                    m["content"] = self._system_prefix + "\n\n" + m["content"]; break
+                    m["content"] = self._system_prefix + "\n\n" + m["content"]
+                    break
         else:
             out.insert(0, {"role": "system", "content": self._system_prefix})
+        # 2) Prethinker (directiva lacónica).
         if enable_prethinker:
             out = apply_prethinker(out)
+        # 3) Selector de contenido (dial de fidelidad).
         if fidelity < 1.0:
             out = compress_history(out, fidelity=fidelity)
         return out
 
-    def chat(self, messages, fidelity=1.0, enable_prethinker=True, **kwargs):
+    def chat(self, messages: list[dict], fidelity: float = 1.0,
+             enable_prethinker: bool = True, **kwargs) -> dict:
         prepared = self._prepare(messages, fidelity, enable_prethinker)
         if self._use_harness:
             from deepseek_harness import DeepSeekHarness
             client = DeepSeekHarness(disable_thinking_by_default=True)
-            return client.chat(model=self.model, messages=prepared, max_tokens=4096, **kwargs)
+            return client.chat(
+                model=self.model, messages=prepared, max_tokens=4096, **kwargs
+            )
+        # OpenAI-compat (Nous Portal).
         from openai import OpenAI
         key = os.environ.get("NOUS_API_KEY") or self._nous_token()
         client = OpenAI(api_key=key, base_url=NOUS_BASE)
-        resp = client.chat.completions.create(model=self.model, messages=prepared, max_tokens=4096, **kwargs)
-        return {"message": {"role": "assistant", "content": resp.choices[0].message.content},
-                "usage": {"prompt_tokens": resp.usage.prompt_tokens, "completion_tokens": resp.usage.completion_tokens}}
+        resp = client.chat.completions.create(
+            model=self.model, messages=prepared, max_tokens=4096, **kwargs
+        )
+        return {
+            "message": {
+                "role": "assistant",
+                "content": resp.choices[0].message.content,
+            },
+            "usage": {
+                "prompt_tokens": resp.usage.prompt_tokens,
+                "completion_tokens": resp.usage.completion_tokens,
+            },
+        }
 
     def _nous_token(self) -> str:
+        # Token de Nous desde auth.json de Hermes (no apto para API directa,
+        # pero suficiente para el chat del portal en este entorno local).
         try:
             import json
-            p = os.path.expandvars(r"%LOCALAPPDATA%/hermes/auth.json")
+            p = os.path.expandvars(
+                r"%LOCALAPPDATA%/hermes/auth.json"
+            )
             with open(p) as f:
                 auth = json.load(f)
             return auth["providers"]["nous"]["access_token"]
@@ -81,4 +109,5 @@ class OptimizedClient:
 
 
 def make_client(env: str) -> OptimizedClient:
+    """Fabrica el cliente optimizado para el entorno dado."""
     return OptimizedClient(env)

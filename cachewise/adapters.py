@@ -1,4 +1,12 @@
-"""adapter multi-entorno: misma interfaz chat() para DeepSeek."""
+"""adapter multi-entorno: misma interfaz chat() para DeepSeek.
+
+Entornos:
+  - nous-dsflash: OpenAI-compat Nous Portal, model deepseek-v4-flash.
+  - deepseek-direct: DeepSeekHarness (disable_thinking_by_default), deepseek-v4-flash.
+
+Aplica las tres palancas: cache_aware (prefijo estable), prethinker
+(directiva lacónica), compress (selector de contenido segun fidelity).
+"""
 
 import os
 
@@ -30,8 +38,6 @@ class OptimizedClient:
             self.model = "deepseek-v4-flash"; self._use_harness = False
         elif env == "deepseek-direct":
             self.model = "deepseek-v4-flash"; self._use_harness = True
-        elif env == "hy3":
-            self.model = "tencent/hy3:free"; self._use_harness = False
         else:
             raise ValueError(f"Entorno desconocido: {env}")
 

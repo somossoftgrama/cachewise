@@ -28,7 +28,19 @@ turn 4: tps~17.0 | prompt 1170 tok | cost $0.0001346 | clarity 1.0
 ```
 El salto 0.7 → 16.5 t/s entre turno 0 y 1 es la prueba empirica del cache hit.
 
-## 5. Pendientes
+**Test multi-turno (cache hit real del proveedor):**
+```
+turn 0: cache_hit_rate=98.5% | hit_tok=1152
+... 
+turn 4: cache_hit_rate=94.5% | hit_tok=1280
+```
+
+## 5. Uso agentico
+
+En agentes se inyectan tool results volatiles. El prefijo estable se sigue cacheando (hit_tok crece 1152→2176), pero el % baja a ~83-90% porque esos resultados son miss por naturaleza. Para agentes, conviene `fidelity=1.0` (sin comprimir) para maximizar el cache hit.
+
+## 6. Pendientes
 
 - `deepseek-v4-flash` en Nous Portal inferencia dio 404 en la cuenta; env `nous-dsflash` listo, falta enrutamiento.
 - Adapter de Command Code fuera de alcance v1 (plan Go bloquea API).
+- Bug corregido: el selector perdia `tool_call_id` al resumir tool messages (ahora lo preserva).

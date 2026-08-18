@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cachewise"
+version = "0.1.0"
+description = "Optimizador de entrega para DeepSeek V4 (cache hit + prethinker + selector de contenido)"
+requires-python = ">=3.10"
+dependencies = ["deepseek-harness", "openai"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cachewise*"]
+
+[project.scripts]
+cachewise = "cachewise.cli:main"

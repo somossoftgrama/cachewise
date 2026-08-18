@@ -1,4 +1,4 @@
-"""CLI de llm-delivery-kit."""
+"""CLI de cachewise."""
 
 import argparse
 import sys
@@ -41,21 +41,21 @@ def cmd_bench(args):
             print(f"turn {turn}: tps~{ct/max(elapsed,1e-6):.1f} | prompt {pt} tok | completion {ct} tok | cost ${cost:.7f} | clarity {clarity}")
         except Exception as e:
             print(f"turn {turn}: ERROR {e}"); break
-    print("\nNota: con prefijo estable DeepSeek sube ~0%→95%+ del turno 0 al 4 (documentado en el harness).")
+    print("\nNota: el cache hit real lo reporta el proveedor; con prefijo estable DeepSeek sube ~0%→95%+ del turno 0 al 4 (documentado en el harness).")
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="delivery-kit", description=__doc__)
+    parser = argparse.ArgumentParser(prog="cachewise", description=__doc__)
     sub = parser.add_subparsers(dest="cmd")
     c = sub.add_parser("chat", help="Envía un prompt optimizado")
-    c.add_argument("--env", default="nous-dsflash", choices=["nous-dsflash", "deepseek-direct", "hy3"])
+    c.add_argument("--env", default="nous-dsflash", choices=["nous-dsflash", "deepseek-direct"])
     c.add_argument("prompt"); c.add_argument("--system", default=None)
     c.add_argument("--fidelity", type=float, default=1.0)
     c.add_argument("--no-prethinker", action="store_true")
     c.add_argument("--verbose", action="store_true")
     c.set_defaults(func=cmd_chat)
     b = sub.add_parser("bench", help="Benchmark de cache hit y costo")
-    b.add_argument("--env", default="nous-dsflash", choices=["nous-dsflash", "deepseek-direct", "hy3"])
+    b.add_argument("--env", default="nous-dsflash", choices=["nous-dsflash", "deepseek-direct"])
     b.set_defaults(func=cmd_bench)
     args = parser.parse_args()
     if not getattr(args, "cmd", None):

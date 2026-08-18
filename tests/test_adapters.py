@@ -13,12 +13,6 @@ def test_make_client_deepseek_direct():
     assert c._use_harness is True
 
 
-def test_make_client_hy3():
-    c = make_client("hy3")
-    assert isinstance(c, OptimizedClient)
-    assert c.model == "tencent/hy3:free"
-
-
 def test_unknown_env_raises():
     import pytest
     with pytest.raises(ValueError):

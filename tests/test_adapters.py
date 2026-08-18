@@ -23,5 +23,7 @@ def test_prepare_injects_stable_prefix():
     c = make_client("nous-dsflash")
     out = c._prepare([{"role": "user", "content": "Hola"}], 1.0, True)
     sys = [m for m in out if m["role"] == "system"][0]
+    # El prefijo estable debe estar presente (cache aware).
     assert "Softgrama" in sys["content"]
+    # La instruccion del usuario intacta.
     assert any(m["role"] == "user" and m["content"] == "Hola" for m in out)
